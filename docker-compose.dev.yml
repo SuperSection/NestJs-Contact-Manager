@@ -1,0 +1,22 @@
+services:
+  rest_api:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3000:3000
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+    volumes:
+      - ./src:/usr/src/app/src
+  postgres_db:
+    image: postgres
+    ports:
+      - 8080:8080
+    environment:
+      - POSTGRES_PASSWORD=pgadmin123
+      - POSTGRES_USER=pguser
+      - POSTGRES_DB=nestjs-rest_api
+    # volumes:
+    #   - D:/docker/data/pgdata:/var/lib/postgresql/data
