@@ -53,8 +53,21 @@ $ docker run -p 5000:5000 nestjs-rest-api-prod
 ### Docker compose
 ```bash
 # development mode
-$ docker-compose -f docker-compose.dev.yml up --build
+$ docker-compose -f docker-compose.dev.yml up
 
 # production mode
-$ docker-compose -f docker-compose.prod.yml up --build
+$ docker-compose -f docker-compose.prod.yml up
+```
+
+### Run & use NestJs app container
+```bash
+$ docker exec -it rest_api bash
+```
+
+### Run & use PostgreSQL database container
+```bash
+$ docker exec -it postgres bash
+
+# in the container
+$ psql -U pguser -h postgres -p 5432 nestjs_contact_manager
 ```

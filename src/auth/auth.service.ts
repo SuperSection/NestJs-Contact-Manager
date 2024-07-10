@@ -47,8 +47,22 @@ export class AuthService {
     return tokens;
   }
 
-  refreshToken(userId: number, refreshToken: string) {
-    
+  async refreshToken(userId: number, refreshToken: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user || !user.refreshToken) throw new ForbiddenException('Access Denied');
+
+    const refreshTokenMatches = await bcrypt.compare(
+      refreshToken,
+      user.refreshToken,
+    );
+    if (!refreshTokenMatches) throw new ForbiddenException('Unauthenticated User');
+
+    const tokens = await this.generateTokens(user.id, user.email);
+    await this.updateRefreshTokenHash(user.id, tokens.refresh_token);
+
+    return tokens;
   }
 
   async signOut(userId: number) {
@@ -69,7 +83,7 @@ export class AuthService {
 
   async generateTokens(userId: number, email: string) {
     const [access_token, refresh_token] = await Promise.all([
-      this.jwtService.sign(
+      this.jwtService.signAsync(
         {
           sub: userId,
           email,
@@ -79,7 +93,7 @@ export class AuthService {
           expiresIn: '15m',
         },
       ),
-      this.jwtService.sign(
+      this.jwtService.signAsync(
         {
           sub: userId,
           email,
