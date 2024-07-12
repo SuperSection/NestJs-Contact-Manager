@@ -6,8 +6,6 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "migrate": "npx prisma migrate dev",
-    "db:push": "npx prisma db push",
     "compose:dev": "docker-compose -f docker-compose.dev.yml up",
     "compose:prod": "docker-compose -f docker-compose.prod.yml up",
     "down:dev": "docker-compose -f docker-compose.dev.yml down",
@@ -36,13 +34,17 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/typeorm": "^10.0.2",
     "@prisma/client": "^5.16.2",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "mailgun.js": "^10.2.1",
     "passport-jwt": "^4.0.1",
+    "pg": "^8.12.0",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

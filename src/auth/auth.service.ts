@@ -1,26 +1,33 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { AuthPayloadDto } from './dto/auth.dto';
-import { PrismaService } from '../prisma/prisma.service';
-import { jwtConstants } from '../constants';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { EntityManager, IsNull, Not, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { Tokens } from './types';
 import * as bcrypt from 'bcrypt';
+
+import { User } from '../user/entities/user.entity';
+import { AuthPayloadDto } from './dto/auth.dto';
+import { jwtConstants } from '../constants';
+import { Tokens } from './types';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private readonly entityManager: EntityManager,
+    private readonly jwtService: JwtService,
   ) {}
 
   async signUp(authPayload: AuthPayloadDto): Promise<Tokens> {
     const hashedPassword = await this.hashData(authPayload.password);
 
-    const newUser = await this.prisma.user.create({
-      data: {
-        email: authPayload.email,
-        password: hashedPassword,
-      },
+    const newUser = new User({
+      email: authPayload.email,
+      password: hashedPassword,
     });
 
     const tokens = await this.generateTokens(newUser.id, newUser.email);
@@ -30,7 +37,7 @@ export class AuthService {
   }
 
   async signIn(authPayload: AuthPayloadDto): Promise<Tokens> {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.userRepository.findOne({
       where: { email: authPayload.email },
     });
     if (!user) throw new ForbiddenException('Access Denied');
@@ -48,16 +55,16 @@ export class AuthService {
   }
 
   async refreshToken(userId: number, refreshToken: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-    if (!user || !user.refreshToken) throw new ForbiddenException('Access Denied');
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user || !user.refreshToken)
+      throw new ForbiddenException('Access Denied');
 
     const refreshTokenMatches = await bcrypt.compare(
       refreshToken,
       user.refreshToken,
     );
-    if (!refreshTokenMatches) throw new ForbiddenException('Unauthenticated User');
+    if (!refreshTokenMatches)
+      throw new ForbiddenException('Unauthenticated User');
 
     const tokens = await this.generateTokens(user.id, user.email);
     await this.updateRefreshTokenHash(user.id, tokens.refresh_token);
@@ -66,15 +73,15 @@ export class AuthService {
   }
 
   async signOut(userId: number) {
-    await this.prisma.user.updateMany({
+    const user = await this.userRepository.findOne({
       where: {
         id: userId,
-        refreshToken: {
-          not: null,
-        },
+        refreshToken: Not(IsNull()),
       },
-      data: { refreshToken: null },
     });
+
+    user.refreshToken = null;
+    await this.entityManager.save(user);
   }
 
   hashData(data: string) {
@@ -110,9 +117,11 @@ export class AuthService {
 
   async updateRefreshTokenHash(userId: number, refreshToken: string) {
     const hashedRefreshToken = await this.hashData(refreshToken);
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshToken: hashedRefreshToken },
-    });
+
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new NotFoundException('User not found');
+
+    user.refreshToken = hashedRefreshToken;
+    await this.entityManager.save(user);
   }
 }

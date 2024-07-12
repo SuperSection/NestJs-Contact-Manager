@@ -3,10 +3,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
-import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { AccessTokenGuard } from './common/guards';
 import { APP_GUARD } from '@nestjs/core';
+import { MailService } from './mail/mail.service';
+import { MailModule } from './mail/mail.module';
+import { ContactsModule } from './contacts/contacts.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -15,7 +18,9 @@ import { APP_GUARD } from '@nestjs/core';
     }),
     AuthModule,
     UserModule,
-    PrismaModule,
+    MailModule,
+    ContactsModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [
@@ -24,6 +29,7 @@ import { APP_GUARD } from '@nestjs/core';
       useClass: AccessTokenGuard,
     },
     AppService,
+    MailService,
   ],
 })
 export class AppModule {}
